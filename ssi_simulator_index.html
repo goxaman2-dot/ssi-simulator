@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSI + MEI — Симулятор самодостаточности бизнес-идеи</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+.page{max-width:780px;margin:0 auto;padding:1.5rem 1rem}
+.hdr{background:#fff;border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1rem;border:0.5px solid #ddd;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.hdr-left h1{font-size:18px;font-weight:600;color:#1a1a1a}
+.hdr-left p{font-size:12px;color:#666;margin-top:3px}
+.hdr-right{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:.38rem .85rem;border-radius:8px;border:0.5px solid #ccc;background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:#1a1a1a;text-decoration:none;white-space:nowrap}
+.btn:hover{background:#f5f5f0}
+.btn.primary{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.btn.primary:hover{background:#0F6E56}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;background:#E1F5EE;color:#0F6E56;font-weight:500}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1rem}
+@media(max-width:500px){.meta-grid{grid-template-columns:1fr}}
+.field{background:#fff;border-radius:8px;padding:.5rem .75rem;border:0.5px solid #ddd}
+.field label{display:block;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.field input{width:100%;border:none;outline:none;font-size:12px;color:#1a1a1a;background:transparent;font-family:inherit}
+.field input::placeholder{color:#bbb;font-size:11px}
+.upload-zone{background:#fff;border:1.5px dashed #ccc;border-radius:10px;padding:1rem;text-align:center;cursor:pointer;margin-bottom:1rem;transition:border-color .2s;position:relative}
+.upload-zone:hover{border-color:#1D9E75}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-zone p{font-size:12px;color:#888;margin-top:4px}
+.upload-status{font-size:12px;font-weight:500;color:#1D9E75;margin-top:4px}
+.section{background:#fff;border-radius:10px;padding:.85rem 1rem;margin-bottom:.65rem;border:0.5px solid #ddd}
+.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:.6rem}
+.sec-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.sec-title{font-size:13px;font-weight:600;flex:1}
+.sec-weight{font-size:10px;color:#888}
+.sec-score{font-size:17px;font-weight:700;min-width:36px;text-align:right}
+.tip{position:relative;display:inline-block;margin-left:4px}
+.tip-btn{width:16px;height:16px;border-radius:50%;background:#7F77DD;color:#fff;font-size:9px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.tip-box{display:none;position:absolute;left:22px;top:-4px;width:250px;background:#1a1a2e;color:#fff;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.tip-box::before{content:'';position:absolute;left:-6px;top:10px;border:6px solid transparent;border-right-color:#1a1a2e}
+.tip:hover .tip-box{display:block}
+.tip-head{font-size:12px;font-weight:700;color:#AFA9EC;margin-bottom:5px}
+.tip-biz{font-size:11px;background:rgba(255,255,255,.08);border-left:2px solid #5DCAA5;padding:5px 8px;border-radius:4px;margin-bottom:5px;color:#E8E8FF}
+.inp-row{display:grid;grid-template-columns:1fr auto;gap:.4rem;align-items:start;margin-bottom:.45rem}
+.inp-block .lbl{font-size:11px;color:#1a1a1a;margin-bottom:3px;font-weight:500}
+.inp-block .hint{font-size:10px;color:#888;margin-top:2px}
+.inp-wrap{display:flex;align-items:center;gap:6px;margin-top:4px}
+.inp-wrap input{width:100px;padding:.3rem .5rem;border-radius:6px;border:0.5px solid #ccc;font-size:12px;text-align:right;outline:none;font-family:inherit}
+.inp-wrap input:focus{border-color:#7F77DD}
+.inp-unit{font-size:10px;color:#888;white-space:nowrap}
+.sub-badge{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sb-lbl{font-size:9px;color:#888}
+.sb-val{font-size:12px;font-weight:700;width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;color:#999}
+.result{margin-top:1rem;display:none}
+.res-top{display:flex;gap:.65rem;margin-bottom:.75rem;align-items:stretch}
+.ssi-pill{text-align:center;padding:.65rem .85rem;background:#fff;border-radius:10px;border:0.5px solid #ddd;min-width:95px}
+.ssi-big{font-size:38px;font-weight:700;line-height:1}
+.ssi-lbl{font-size:9px;color:#888;margin-top:2px}
+.ssi-adj{font-size:11px;font-weight:600;margin-top:4px}
+.verdict{flex:1;padding:.65rem .85rem;border-radius:10px}
+.vt{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.vv{font-size:11px;line-height:1.5}
+.vis-row{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem}
+@media(max-width:480px){.vis-row{grid-template-columns:1fr}}
+.lily-wrap{background:#fff;border-radius:10px;border:0.5px solid #ddd;padding:.65rem;display:flex;align-items:center;justify-content:center}
+.market-panel{background:#fff;border-radius:10px;border:0.5px solid #ddd;padding:.75rem}
+.market-panel h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.5rem}
+.mrow{display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem}
+.mrow label{font-size:11px;color:#1a1a1a;flex:1;display:flex;align-items:center;gap:5px}
+.mrow input{width:90px;padding:.25rem .4rem;border-radius:5px;border:0.5px solid #ccc;font-size:11px;text-align:right;outline:none;font-family:inherit}
+.mei-strip{display:flex;align-items:center;justify-content:space-between;margin-top:.5rem;padding-top:.4rem;border-top:0.5px solid #eee}
+.mei-label{font-size:10px;color:#888}
+.mei-val{font-size:15px;font-weight:700}
+.mwarn{font-size:10px;margin-top:.4rem;padding:5px 8px;border-radius:5px;display:none;background:#FCEBEB;color:#501313}
+.bars-card{background:#fff;border-radius:10px;border:0.5px solid #ddd;padding:.75rem;margin-bottom:.65rem}
+.bars-card h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.5rem}
+.brow{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.bname{font-size:11px;font-weight:600;min-width:12px}
+.btrack{flex:1;height:7px;border-radius:4px;background:#f0f0f0;overflow:hidden;border:0.5px solid #eee}
+.bfill{height:100%;border-radius:4px}
+.bval{font-size:10px;font-weight:600;min-width:28px;text-align:right}
+.bw{font-size:9px;color:#999;min-width:26px}
+.recs-card{background:#fff;border-radius:10px;border:0.5px solid #ddd;padding:.75rem;margin-bottom:.75rem}
+.recs-card h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:.5rem}
+.rrow{display:flex;gap:7px;margin-bottom:.5rem;align-items:flex-start}
+.rdot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.rtext{font-size:11px;line-height:1.6;color:#1a1a1a}
+.rfact{font-size:10px;color:#888;margin-top:1px}
+.footer{text-align:center;font-size:10px;color:#999;margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid #ddd}
+@media print{
+  body{background:#fff}
+  .hdr-right,.upload-zone,.result .btn{display:none!important}
+  .page{max-width:100%;padding:.5rem}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="hdr">
+  <div class="hdr-left">
+    <h1>SSI + MEI · Симулятор самодостаточности бизнес-идеи</h1>
+    <p>Self-Sufficiency Index · Market Entry Index · TRUSEK-6 Framework &nbsp;<span class="badge">Без ползунков — только данные</span></p>
+  </div>
+  <div class="hdr-right">
+    <button class="btn" onclick="downloadTemplate()">⬇ Шаблон анкеты JSON</button>
+    <button class="btn primary" onclick="window.print()">🖨 Печать заключения</button>
+  </div>
+</div>
+
+<div class="meta-grid">
+  <div class="field"><label>Стартап / бизнес-идея</label><input id="m-name" placeholder="Название проекта"></div>
+  <div class="field"><label>Автор</label><input id="m-author" placeholder="ФИО автора"></div>
+  <div class="field"><label>Эксперт / дата</label><input id="m-expert" placeholder="ФИО эксперта · дата"></div>
+</div>
+
+<div class="upload-zone" id="drop-zone">
+  <input type="file" id="file-inp" accept=".json" onchange="loadJSON(this)">
+  <div style="font-size:22px;color:#ccc">⬆</div>
+  <div style="font-size:13px;font-weight:500;color:#555;margin-top:4px">Загрузить анкету JSON</div>
+  <p>Перетащите файл или нажмите · Скачайте шаблон кнопкой выше, заполните и загрузите</p>
+  <div class="upload-status" id="upload-status"></div>
+</div>
+
+<div id="sections-wrap">
+
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-dot" style="background:#1D9E75">U</div>
+    <div class="sec-title">Утилитарность <span class="tip"><button class="tip-btn">?</button><div class="tip-box"><div class="tip-head">U — Утилитарность</div><div class="tip-biz">💼 Клиент платит вам не потому что вы красивые, а потому что БЕЗ вас ему больно или дорого. Насколько велика эта боль? Насколько часто она случается?</div>U₁ — сколько денег теряет клиент если откажется от вашего продукта.<br><br>U₂ — сколько раз в год клиент сталкивается с этой проблемой.</div></span></div>
+    <div class="sec-weight">вес 0.15</div>
+    <div class="sec-score" id="sc-U" style="color:#ccc">—</div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">U₁ · Стоимость альтернативы или потерь клиента без вашего продукта</div><div class="hint">Архбюро берёт 150 000 руб. → экономия клиента = 150 000. Конкурент стоит 300 руб., вы — 127 → потеря клиента при уходе = 173 руб. за банку</div><div class="inp-wrap"><input type="number" id="i-u1" placeholder="253" min="0" oninput="calc()"><span class="inp-unit">руб.</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">U₁</div><div class="sb-val" id="b-u1">—</div></div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">U₂ · Сколько раз в год клиент сталкивается с этой потребностью</div><div class="hint">Раз в год = 1. Раз в месяц = 12. Раз в неделю = 52. Ежедневно = 365</div><div class="inp-wrap"><input type="number" id="i-u2" placeholder="26" min="0" oninput="calc()"><span class="inp-unit">эп./год</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">U₂</div><div class="sb-val" id="b-u2">—</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-dot" style="background:#5DCAA5">E</div>
+    <div class="sec-title">Эмоциональная ценность <span class="tip"><button class="tip-btn">?</button><div class="tip-box"><div class="tip-head">E — Эмоция</div><div class="tip-biz">💼 Люди покупают головой — но возвращаются сердцем. Если после первого использования клиент рассказал другу — E высокий. Если просто закрыл и забыл — E низкий.</div>E₁ — сколько минут клиент проводит с вашим продуктом за сессию.<br><br>E₂ — ваша цена делённая на среднюю цену конкурента.</div></span></div>
+    <div class="sec-weight">вес 0.20</div>
+    <div class="sec-score" id="sc-E" style="color:#ccc">—</div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">E₁ · Среднее время контакта клиента с продуктом за сессию</div><div class="hint">Приложение: время в приложении. Консервы: время приготовления и еды. Платформа: время на сайте</div><div class="inp-wrap"><input type="number" id="i-e1" placeholder="20" min="0" oninput="calc()"><span class="inp-unit">минут</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">E₁</div><div class="sb-val" id="b-e1">—</div></div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">E₂ · Ваша цена / средняя цена конкурента</div><div class="hint">Ваша цена 127 руб., конкурент 300 руб. → введите 0.42. Если вы дороже конкурента → больше 1.0</div><div class="inp-wrap"><input type="number" id="i-e2" placeholder="0.42" min="0" step="0.01" oninput="calc()"><span class="inp-unit">коэфф.</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">E₂</div><div class="sb-val" id="b-e2">—</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-dot" style="background:#9FE1CB">R</div>
+    <div class="sec-title">Повторяемость спроса <span class="tip"><button class="tip-btn">?</button><div class="tip-box"><div class="tip-head">R — Повторяемость</div><div class="tip-biz">💼 Бизнес который живёт только на новых клиентах — это беговая дорожка. Остановился — упал. LTV/CAC больше 3 = вы зарабатываете в 3 раза больше чем тратите на привлечение.</div>R₁ — сколько раз в год один клиент покупает повторно.<br><br>R₂ — LTV делённый на CAC. Норма: больше 3.</div></span></div>
+    <div class="sec-weight">вес 0.15</div>
+    <div class="sec-score" id="sc-R" style="color:#ccc">—</div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">R₁ · Повторных покупок одного клиента в год</div><div class="hint">Консервы: 6 раз/год. Подписка: 12. Разовый дизайн-проект: 0.2 (раз в 5 лет)</div><div class="inp-wrap"><input type="number" id="i-r1" placeholder="6" min="0" step="0.1" oninput="calc()"><span class="inp-unit">раз/год</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">R₁</div><div class="sb-val" id="b-r1">—</div></div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">R₂ · LTV / CAC (пожизненная ценность / стоимость привлечения)</div><div class="hint">LTV 30 000 руб., CAC 5 000 руб. → 6.0. Меньше 1 = теряете деньги на каждом клиенте</div><div class="inp-wrap"><input type="number" id="i-r2" placeholder="4.75" min="0" step="0.1" oninput="calc()"><span class="inp-unit">коэфф.</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">R₂</div><div class="sb-val" id="b-r2">—</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-dot" style="background:#7F77DD">K</div>
+    <div class="sec-title">Капитальная эффективность <span class="tip"><button class="tip-btn">?</button><div class="tip-box"><div class="tip-head">K — Капитал</div><div class="tip-biz">💼 Чем меньше денег нужно вложить на старте — тем быстрее выйдешь в плюс. Чем выше маржа — тем меньше нужно продавать чтобы покрыть расходы.</div>K₁ — стартовые вложения (оборудование, ПО, лицензии) в тысячах рублей.<br><br>K₂ — маржинальность: (выручка − переменные затраты) / выручка × 100%.</div></span></div>
+    <div class="sec-weight">вес 0.15</div>
+    <div class="sec-score" id="sc-K" style="color:#ccc">—</div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">K₁ · Стартовые капитальные вложения CAPEX</div><div class="hint">До 300 тыс. = отлично. 300–1000 тыс. = норма. 1000–5000 тыс. = тяжело. Более 5 млн = красная зона</div><div class="inp-wrap"><input type="number" id="i-k1" placeholder="490" min="0" oninput="calc()"><span class="inp-unit">тыс. руб.</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">K₁</div><div class="sb-val" id="b-k1">—</div></div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">K₂ · Маржинальность продукта</div><div class="hint">Выручка 127 руб., себестоимость 95 руб. → маржа = (127−95)/127 × 100 = 25.2%</div><div class="inp-wrap"><input type="number" id="i-k2" placeholder="25" min="0" max="100" oninput="calc()"><span class="inp-unit">%</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">K₂</div><div class="sb-val" id="b-k2">—</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-dot" style="background:#AFA9EC">T</div>
+    <div class="sec-title">Время до автономии <span class="tip"><button class="tip-btn">?</button><div class="tip-box"><div class="tip-head">T — Время</div><div class="tip-biz">💼 Каждый месяц до выхода в плюс — это деньги которые кто-то даст взаймы или сгорят ваши собственные. 6 месяцев = хорошо. 24 месяца = рискованно. 36+ = очень тяжело.</div>T₁ — месяцев до первого положительного EBITDA.<br><br>T₂ — месяцев до полной окупаемости стартовых вложений.</div></span></div>
+    <div class="sec-weight">вес 0.20</div>
+    <div class="sec-score" id="sc-T" style="color:#ccc">—</div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">T₁ · Месяцев до положительного EBITDA по бизнес-плану</div><div class="hint">До 6 мес. = отлично. 6–12 = хорошо. 12–24 = приемлемо. Более 24 = стоп-сигнал</div><div class="inp-wrap"><input type="number" id="i-t1" placeholder="3" min="1" oninput="calc()"><span class="inp-unit">мес.</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">T₁</div><div class="sb-val" id="b-t1">—</div></div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">T₂ · Месяцев до окупаемости стартовых вложений</div><div class="hint">До 12 мес. = отлично. 12–24 = норма. 24–36 = терпимо. Более 36 = стоп-сигнал</div><div class="inp-wrap"><input type="number" id="i-t2" placeholder="16" min="1" oninput="calc()"><span class="inp-unit">мес.</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">T₂</div><div class="sb-val" id="b-t2">—</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-dot" style="background:#3C3489">S</div>
+    <div class="sec-title">Социальный эффект <span class="tip"><button class="tip-btn">?</button><div class="tip-box"><div class="tip-head">S — Социальный</div><div class="tip-biz">💼 Лучшая реклама — когда клиент сам рассказывает о вас другу. Это бесплатный продавец. NPS — спроси 10 клиентов «порекомендуете нас?» Кто поставил 9-10 = промоутер. Кто 1-6 = детрактор.</div>S₁ — доля клиентов пришедших по рекомендации (%).<br><br>S₂ — NPS: % промоутеров (9-10) минус % детракторов (1-6).</div></span></div>
+    <div class="sec-weight">вес 0.15</div>
+    <div class="sec-score" id="sc-S" style="color:#ccc">—</div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">S₁ · Доля клиентов пришедших по рекомендации</div><div class="hint">Из 100 новых клиентов 30 пришли «по сарафану» → 30. Нет данных → 0</div><div class="inp-wrap"><input type="number" id="i-s1" placeholder="5" min="0" max="100" oninput="calc()"><span class="inp-unit">%</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">S₁</div><div class="sb-val" id="b-s1">—</div></div>
+  </div>
+  <div class="inp-row">
+    <div class="inp-block"><div class="lbl">S₂ · NPS = % промоутеров (9-10) − % детракторов (1-6)</div><div class="hint">60% ставят 9-10, 10% ставят 1-6 → NPS = 50. Диапазон: от -100 до +100</div><div class="inp-wrap"><input type="number" id="i-s2" placeholder="30" min="-100" max="100" oninput="calc()"><span class="inp-unit">баллы</span></div></div>
+    <div class="sub-badge"><div class="sb-lbl">S₂</div><div class="sb-val" id="b-s2">—</div></div>
+  </div>
+</div>
+
+</div>
+
+<div class="result" id="result">
+  <div class="res-top">
+    <div class="ssi-pill">
+      <div class="ssi-big" id="r-ssi">—</div>
+      <div class="ssi-lbl">SSI</div>
+      <div class="ssi-adj" id="r-adj"></div>
+    </div>
+    <div class="verdict" id="r-vbox">
+      <div class="vt" id="r-vt"></div>
+      <div class="vv" id="r-vv"></div>
+    </div>
+  </div>
+
+  <div class="vis-row">
+    <div class="lily-wrap">
+      <svg id="lily-svg" viewBox="0 0 220 220" width="210" height="210" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="gU"><stop offset="0%" stop-color="#1D9E75" stop-opacity=".9"/><stop offset="100%" stop-color="#1D9E75" stop-opacity=".3"/></radialGradient>
+          <radialGradient id="gE"><stop offset="0%" stop-color="#5DCAA5" stop-opacity=".9"/><stop offset="100%" stop-color="#5DCAA5" stop-opacity=".3"/></radialGradient>
+          <radialGradient id="gR"><stop offset="0%" stop-color="#9FE1CB" stop-opacity=".9"/><stop offset="100%" stop-color="#9FE1CB" stop-opacity=".3"/></radialGradient>
+          <radialGradient id="gK"><stop offset="0%" stop-color="#7F77DD" stop-opacity=".9"/><stop offset="100%" stop-color="#7F77DD" stop-opacity=".3"/></radialGradient>
+          <radialGradient id="gT"><stop offset="0%" stop-color="#AFA9EC" stop-opacity=".9"/><stop offset="100%" stop-color="#AFA9EC" stop-opacity=".3"/></radialGradient>
+          <radialGradient id="gS"><stop offset="0%" stop-color="#3C3489" stop-opacity=".9"/><stop offset="100%" stop-color="#3C3489" stop-opacity=".3"/></radialGradient>
+        </defs>
+        <g id="mrings"></g>
+        <g id="lgrid"></g>
+        <g id="laxes"></g>
+        <g id="lpetals"></g>
+        <g id="llabels"></g>
+        <circle cx="110" cy="110" r="22" fill="white" stroke="#E8D5A3" stroke-width="1.5"/>
+        <text x="110" y="106" text-anchor="middle" font-size="9" font-weight="700" fill="#3C3489">SSI</text>
+        <text x="110" y="120" text-anchor="middle" font-size="12" font-weight="700" fill="#1D9E75" id="c-val">—</text>
+      </svg>
+    </div>
+    <div class="market-panel">
+      <h3>Рынок — TAM / SAM / SOM</h3>
+      <div class="mrow"><label><span style="font-size:10px;background:#eee;border-radius:3px;padding:1px 4px;color:#666">TAM</span> Весь рынок</label><input type="number" id="i-tam" placeholder="млн руб." min="0" oninput="calcMkt()"></div>
+      <div class="mrow"><label><span style="font-size:10px;background:#EDE9FC;border-radius:3px;padding:1px 4px;color:#7F77DD">SAM</span> Ваш охват</label><input type="number" id="i-sam" placeholder="млн руб." min="0" oninput="calcMkt()"></div>
+      <div class="mrow"><label><span style="font-size:10px;background:#E1F5EE;border-radius:3px;padding:1px 4px;color:#1D9E75">SOM</span> За 3 года</label><input type="number" id="i-som" placeholder="млн руб." min="0" oninput="calcMkt()"></div>
+      <div class="mrow"><label><span style="font-size:10px;background:#FCEBEB;border-radius:3px;padding:1px 4px;color:#E24B4A">TAV</span> Порог автономии</label><input type="number" id="i-tav" placeholder="млн руб." min="0" oninput="calcMkt()"></div>
+      <div class="mei-strip">
+        <div><div class="mei-label">MEI · Рыночный модификатор</div><div style="font-size:9px;color:#aaa" id="mei-hint"></div></div>
+        <div class="mei-val" id="mei-val" style="color:#ccc">—</div>
+      </div>
+      <div class="mwarn" id="mwarn"></div>
+    </div>
+  </div>
+
+  <div class="bars-card">
+    <h3>Профиль факторов SSI — алгоритмические баллы</h3>
+    <div id="r-bars"></div>
+  </div>
+
+  <div class="recs-card">
+    <h3>Рекомендации алгоритма</h3>
+    <div id="r-recs"></div>
+  </div>
+
+  <button class="btn primary" onclick="window.print()" style="width:100%;justify-content:center;padding:.5rem;font-size:13px">🖨 Распечатать экспертное заключение (А4)</button>
+</div>
+
+<div class="footer">SSI-TRUSEK-6 Framework + MEI · Инструмент прединвестиционной оценки бизнес-идей © 2025–2026</div>
+</div>
+
+<script>
+const FD=[
+  {id:'U',label:'U',name:'Утилитарность',w:.15,color:'#1D9E75',grad:'gU',
+   recs:{low:'Боль клиента слишком мала или редка. Ищите сегмент где проблема острее — либо переформулируйте ценностное предложение через конкретные потери клиента в рублях.',mid:'Утилитарность средняя. Усильте кейсы потерь: покажите клиенту реальную цену бездействия в рублях.',hi:'Сильная утилитарность. Используйте это в продажах: говорите цифрами потерь, а не функциями продукта.'}},
+  {id:'E',label:'E',name:'Эмоция',w:.20,color:'#5DCAA5',grad:'gE',
+   recs:{low:'Продукт не вызывает эмоций. Добавьте визуальный результат, историю, момент «до и после». Без эмоции клиент не вернётся и не расскажет другим.',mid:'Эмоция есть, но слабая. Найдите момент максимального удовольствия и усильте его: упаковка, первое впечатление, скорость результата.',hi:'Сильный эмоциональный крюк. Снимайте видео с реакцией клиентов — это ваш лучший маркетинг.'}},
+  {id:'R',label:'R',name:'Повторяемость',w:.15,color:'#9FE1CB',grad:'gR',
+   recs:{low:'Клиент покупает раз и уходит. Без повторных продаж вы тратите деньги на привлечение каждый раз заново. Введите подписку, расходники или сервисный контракт.',mid:'Повторяемость есть, но LTV мог бы быть выше. Поднимите средний чек через апселл или введите программу лояльности.',hi:'Отличная повторяемость. Фокусируйтесь на снижении CAC — при таком LTV каждый рубль в привлечение даст максимум.'}},
+  {id:'K',label:'K',name:'Капитал',w:.15,color:'#7F77DD',grad:'gK',
+   recs:{low:'Стартовые вложения высоки или маржа низка. Ищите способ снизить CAPEX (аренда вместо покупки, аутсорсинг) и повысить маржу (цена или себестоимость).',mid:'Капитальная эффективность средняя. Автоматизируйте процессы — даже 20% снижения себестоимости резко улучшит картину.',hi:'Отличная капитальная структура. Низкий порог и высокая маржа — это конкурентное преимущество само по себе.'}},
+  {id:'T',label:'T',name:'Время',w:.20,color:'#AFA9EC',grad:'gT',
+   recs:{low:'Путь к окупаемости слишком длинный. Сократите MVP: запустите самый простой платный продукт немедленно. Каждый лишний месяц — это деньги инвестора или ваши нервы.',mid:'Сроки приемлемые. Ускорьте: найдите 3–5 клиентов которые заплатят авансом за будущий продукт.',hi:'Быстрый выход в плюс. Это главный аргумент для инвестора на встрече — говорите об этом первым.'}},
+  {id:'S',label:'S',name:'Социальный',w:.15,color:'#3C3489',grad:'gS',
+   recs:{low:'Нет сарафанного радио. Введите реферальную программу: дайте клиенту выгоду за каждого приведённого друга.',mid:'Сарафан есть, но слабый. Спросите промоутеров почему они рекомендуют — и используйте их слова в рекламе.',hi:'Сильный социальный двигатель. Создайте сообщество клиентов — они сами будут продавать.'}}
+];
+const N=6,CX=110,CY=110,RM=78,Rm=10;
+let mei=1.0;
+function ang(i){return(Math.PI*2/N)*i-Math.PI/2;}
+function pt(r,i){return[CX+r*Math.cos(ang(i)),CY+r*Math.sin(ang(i))];}
+function clr(v){return v>=7?'#1D9E75':v>=5?'#EF9F27':'#E24B4A';}
+function bg(v){return v>=7?'#E1F5EE':v>=5?'#FAEEDA':'#FCEBEB';}
+function tc(v){return v>=7?'#0F6E56':v>=5?'#633806':'#501313';}
+function n2s(v,mn,mx,inv=false){let r=Math.max(mn,Math.min(mx,v));let p=(r-mn)/(mx-mn);if(inv)p=1-p;return 2+p*8;}
+function pal(s){
+  if(s>=7.5)return{fill:'#1D9E75',bg:'#E1F5EE',tx:'#0F6E56',tag:'🌸 ЛИЛИЯ РАСЦВЕЛА'};
+  if(s>=6.5)return{fill:'#5DCAA5',bg:'#E1F5EE',tx:'#0F6E56',tag:'🌿 РАСКРЫВАЕТСЯ'};
+  if(s>=5.0)return{fill:'#EF9F27',bg:'#FAEEDA',tx:'#633806',tag:'🌱 ЧАСТИЧНО РАСКРЫТА'};
+  if(s>=3.5)return{fill:'#E24B4A',bg:'#FCEBEB',tx:'#501313',tag:'🥀 БУТОН СЛАБЫЙ'};
+  return{fill:'#A32D2D',bg:'#FCEBEB',tx:'#501313',tag:'🌑 НЕ РАСКРЫЛАСЬ'};
+}
+function vt(s){
+  if(s>=8.5)return'Идея обладает мощным внутренним самодвижком. Рекомендована к финансированию.';
+  if(s>=7.5)return'Идея самодостаточна по большинству факторов. Рекомендована к финансированию с мониторингом слабых мест.';
+  if(s>=6.5)return'Потенциал есть, раскрывается неравномерно. Требует доработки перед финансированием.';
+  if(s>=5.0)return'Идея частично самодостаточна. Условное финансирование с устранением слабостей.';
+  if(s>=3.5)return'Системные слабости блокируют самодостаточность. Пересмотр бизнес-модели.';
+  return'Внутренний самодвижок отсутствует. Вернуться к Customer Discovery.';
+}
+function buildGrid(){
+  const g=document.getElementById('lgrid');g.innerHTML='';
+  [2,4,6,8,10].forEach(v=>{
+    const r=Rm+(RM-Rm)*(v-2)/8;
+    const pts=Array.from({length:N},(_,i)=>pt(r,i).join(',')).join(' ');
+    const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    p.setAttribute('points',pts);p.setAttribute('fill','none');p.setAttribute('stroke','rgba(0,0,0,.1)');p.setAttribute('stroke-width','0.5');
+    g.appendChild(p);
+  });
+  const ax=document.getElementById('laxes');ax.innerHTML='';
+  FD.forEach((_,i)=>{
+    const[x,y]=pt(RM,i);
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',CX);l.setAttribute('y1',CY);l.setAttribute('x2',x);l.setAttribute('y2',y);
+    l.setAttribute('stroke','rgba(0,0,0,.08)');l.setAttribute('stroke-width','0.5');
+    ax.appendChild(l);
+  });
+}
+function scores(){
+  const get=id=>parseFloat(document.getElementById(id).value)||0;
+  const u1=n2s(get('i-u1'),0,300000);
+  const u2=n2s(get('i-u2'),0,52);
+  const e1=n2s(get('i-e1'),0,60);
+  const e2=n2s(get('i-e2'),0,2.0);
+  const r1=n2s(get('i-r1'),0,52);
+  const r2=n2s(get('i-r2'),0,10);
+  const k1=n2s(get('i-k1'),0,10000,true);
+  const k2=n2s(get('i-k2'),0,80);
+  const t1=n2s(get('i-t1'),1,36,true);
+  const t2=n2s(get('i-t2'),1,60,true);
+  const s1=n2s(get('i-s1'),0,100);
+  const s2=n2s(get('i-s2'),-100,100);
+  return{subs:{u1,u2,e1,e2,r1,r2,k1,k2,t1,t2,s1,s2},
+    vals:{U:(u1+u2)/2,E:(e1+e2)/2,R:(r1+r2)/2,K:(k1+k2)/2,T:(t1+t2)/2,S:(s1+s2)/2}};
+}
+function setBadge(id,v){
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=v>0?v.toFixed(1):'—';
+  el.style.background=v>0?bg(v):'#f0f0f0';
+  el.style.color=v>0?tc(v):'#999';
+}
+function drawLily(vals){
+  const p=document.getElementById('lpetals');p.innerHTML='';
+  const lb=document.getElementById('llabels');lb.innerHTML='';
+  FD.forEach((f,i)=>{
+    const v=vals[f.id];const nm=(v-2)/8;const r=Rm+(RM-Rm)*nm;
+    const[px,py]=pt(r,i);const cr=r*.48;
+    const[c1x,c1y]=pt(cr,(i-.42+N)%N);const[c2x,c2y]=pt(cr,(i+.42)%N);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${CX} ${CY} Q${c1x} ${c1y} ${px} ${py} Q${c2x} ${c2y} ${CX} ${CY}Z`);
+    path.setAttribute('fill',`url(#${f.grad})`);path.setAttribute('opacity',(.5+nm*.45).toFixed(2));
+    path.setAttribute('stroke',f.color);path.setAttribute('stroke-width','.8');p.appendChild(path);
+    const[sx,sy]=pt(r*.6,i);
+    const tv=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tv.setAttribute('x',sx);tv.setAttribute('y',sy+3);tv.setAttribute('text-anchor','middle');
+    tv.setAttribute('font-size','8');tv.setAttribute('font-weight','700');tv.setAttribute('fill','white');
+    tv.textContent=v.toFixed(1);p.appendChild(tv);
+    const[lx,ly]=pt(RM+16,i);
+    const tl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tl.setAttribute('x',lx);tl.setAttribute('y',ly);tl.setAttribute('text-anchor','middle');
+    tl.setAttribute('font-size','10');tl.setAttribute('font-weight','700');tl.setAttribute('fill',f.color);
+    tl.textContent=f.label;lb.appendChild(tl);
+    const[lx2,ly2]=pt(RM+26,i);
+    const tl2=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tl2.setAttribute('x',lx2);tl2.setAttribute('y',ly2+9);tl2.setAttribute('text-anchor','middle');
+    tl2.setAttribute('font-size','6');tl2.setAttribute('fill',f.color);tl2.setAttribute('opacity','.8');
+    tl2.textContent=f.name;lb.appendChild(tl2);
+  });
+}
+function drawMarket(tam,sam,som,tav){
+  const g=document.getElementById('mrings');g.innerHTML='';
+  if(!tam||!sam||!som)return;
+  const rO=RM+36;
+  [{p:1,c:'#ccc',r:rO},{p:Math.min(1,sam/tam),c:'#7F77DD',r:rO-8},{p:Math.min(1,som/tam),c:'#1D9E75',r:rO-16}].forEach(({p,c,r})=>{
+    const s=-Math.PI/2;const e=s+2*Math.PI*p;
+    const x1=CX+r*Math.cos(s);const y1=CY+r*Math.sin(s);
+    const x2=CX+r*Math.cos(e);const y2=CY+r*Math.sin(e);
+    const arc=document.createElementNS('http://www.w3.org/2000/svg','path');
+    if(p>=.999){arc.setAttribute('d',`M${CX} ${CY-r} A${r} ${r} 0 1 1 ${CX-.01} ${CY-r} Z`);}
+    else{arc.setAttribute('d',`M${CX} ${CY} L${x1} ${y1} A${r} ${r} 0 ${p>.5?1:0} 1 ${x2} ${y2} Z`);}
+    arc.setAttribute('fill',c);arc.setAttribute('opacity','.12');arc.setAttribute('stroke',c);arc.setAttribute('stroke-width','1');arc.setAttribute('stroke-opacity','.35');
+    g.appendChild(arc);
+  });
+  if(tav&&tam){
+    const tr=rO-8;const ta=-Math.PI/2+2*Math.PI*Math.min(1,tav/tam);
+    const tx=CX+tr*Math.cos(ta);const ty=CY+tr*Math.sin(ta);
+    const tl=document.createElementNS('http://www.w3.org/2000/svg','line');
+    tl.setAttribute('x1',CX);tl.setAttribute('y1',CY);tl.setAttribute('x2',tx);tl.setAttribute('y2',ty);
+    tl.setAttribute('stroke','#E24B4A');tl.setAttribute('stroke-width','1.5');tl.setAttribute('stroke-dasharray','3,2');
+    g.appendChild(tl);
+    const tt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tt.setAttribute('x',tx+4);tt.setAttribute('y',ty);tt.setAttribute('font-size','7');tt.setAttribute('fill','#E24B4A');tt.setAttribute('font-weight','700');
+    tt.textContent='TAV';g.appendChild(tt);
+  }
+}
+function calcMkt(){
+  const g=id=>parseFloat(document.getElementById(id).value)||0;
+  const tam=g('i-tam'),sam=g('i-sam'),som=g('i-som'),tav=g('i-tav');
+  if(!tam||!sam||!som){mei=1.0;document.getElementById('mei-val').textContent='—';document.getElementById('mei-val').style.color='#ccc';document.getElementById('mei-hint').textContent='';document.getElementById('mwarn').style.display='none';drawMarket(0,0,0,0);return;}
+  const m1=Math.min(1,som/Math.max(tav||1,.001));
+  const m2=Math.min(1,sam/tam);
+  const m3=som>0&&tav>0?(som>=tav?1:.5+.5*(som/tav)):.8;
+  mei=Math.max(.5,Math.min(1,(m1*.5+m2*.3+m3*.2)));
+  const mv=document.getElementById('mei-val');
+  mv.textContent=mei.toFixed(2);mv.style.color=mei>=.85?'#1D9E75':mei>=.7?'#EF9F27':'#E24B4A';
+  document.getElementById('mei-hint').textContent='SOM/SAM/TAV учтены';
+  const w=document.getElementById('mwarn');
+  if(tav>0&&som<tav){w.style.display='block';w.textContent='⚠ SOM ('+som+' млн) < TAV ('+tav+' млн) — рынок не вмещает порог автономии';}
+  else w.style.display='none';
+  drawMarket(tam,sam,som,tav);
+  calc();
+}
+function hasInput(){return['i-u1','i-u2','i-e1','i-e2','i-r1','i-r2','i-k1','i-k2','i-t1','i-t2','i-s1','i-s2'].some(id=>document.getElementById(id).value!=='');}
+function calc(){
+  if(!hasInput())return;
+  document.getElementById('result').style.display='block';
+  const{subs,vals}=scores();
+  Object.entries(subs).forEach(([k,v])=>setBadge('b-'+k,v));
+  FD.forEach(f=>{const el=document.getElementById('sc-'+f.id);if(el){el.textContent=vals[f.id].toFixed(1);el.style.color=clr(vals[f.id]);}});
+  const ssi=FD.reduce((s,f)=>s+vals[f.id]*f.w,0);
+  const adj=ssi*mei;
+  const col=pal(ssi);
+  document.getElementById('r-ssi').textContent=ssi.toFixed(2);
+  document.getElementById('r-ssi').style.color=col.fill;
+  document.getElementById('r-adj').textContent='SSI_adj '+adj.toFixed(2);
+  document.getElementById('r-adj').style.color=mei<.85?'#EF9F27':col.fill;
+  const vb=document.getElementById('r-vbox');vb.style.background=col.bg;
+  document.getElementById('r-vt').style.color=col.tx;
+  document.getElementById('r-vt').textContent='⚖️ '+col.tag;
+  document.getElementById('r-vv').style.color=col.tx;
+  document.getElementById('r-vv').textContent=vt(ssi);
+  document.getElementById('c-val').textContent=ssi.toFixed(2);
+  document.getElementById('c-val').setAttribute('fill',col.fill);
+  drawLily(vals);
+  const bars=document.getElementById('r-bars');bars.innerHTML='';
+  FD.forEach(f=>{
+    const v=vals[f.id];const pct=((v-2)/8*100).toFixed(0);const c=clr(v);
+    bars.innerHTML+=`<div class="brow"><span class="bname" style="color:${f.color}">${f.label}</span><div class="btrack"><div class="bfill" style="width:${pct}%;background:${c}"></div></div><span class="bval" style="color:${c}">${v.toFixed(1)}</span><span class="bw">×${f.w}</span></div>`;
+  });
+  const rr=document.getElementById('r-recs');rr.innerHTML='';
+  const sorted=[...FD].map(f=>({...f,v:vals[f.id]})).sort((a,b)=>a.v-b.v);
+  let sh=0;
+  sorted.forEach(f=>{
+    if(sh>=3)return;const lv=f.v>=7?'hi':f.v>=5?'mid':'low';
+    if(lv==='hi'&&sh>0)return;const dc=clr(f.v);
+    rr.innerHTML+=`<div class="rrow"><div class="rdot" style="background:${dc}"></div><div><div class="rtext">${f.recs[lv]}</div><div class="rfact" style="color:${f.color}">${f.label} — ${f.name} · ${f.v.toFixed(1)}</div></div></div>`;
+    sh++;
+  });
+}
+function loadJSON(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!==undefined){el.value=val;}};
+      set('m-name',d.name);set('m-author',d.author);set('m-expert',d.expert);
+      ['u1','u2','e1','e2','r1','r2','k1','k2','t1','t2','s1','s2'].forEach(k=>set('i-'+k,d[k]));
+      set('i-tam',d.tam);set('i-sam',d.sam);set('i-som',d.som);set('i-tav',d.tav);
+      document.getElementById('upload-status').textContent='✅ Анкета загружена: '+file.name;
+      calcMkt();calc();
+    }catch(err){document.getElementById('upload-status').textContent='⚠️ Ошибка формата JSON';}
+  };
+  reader.readAsText(file);
+}
+function downloadTemplate(){
+  const tpl={
+    "_comment":"Заполните поля и загрузите файл в симулятор SSI",
+    "name":"Название стартапа",
+    "author":"ФИО автора",
+    "expert":"ФИО эксперта",
+    "u1":0,"_u1":"Стоимость альтернативы для клиента в руб.",
+    "u2":0,"_u2":"Эпизодов потребности в год",
+    "e1":0,"_e1":"Минут контакта с продуктом за сессию",
+    "e2":0,"_e2":"Ваша цена делённая на цену конкурента (коэффициент)",
+    "r1":0,"_r1":"Повторных покупок в год",
+    "r2":0,"_r2":"LTV делённый на CAC (коэффициент)",
+    "k1":0,"_k1":"CAPEX стартовые вложения в тысячах рублей",
+    "k2":0,"_k2":"Маржинальность продукта в процентах",
+    "t1":0,"_t1":"Месяцев до EBITDA плюс",
+    "t2":0,"_t2":"Месяцев до окупаемости",
+    "s1":0,"_s1":"Доля клиентов по рекомендации в процентах",
+    "s2":0,"_s2":"NPS от минус 100 до плюс 100",
+    "tam":0,"_tam":"TAM весь рынок в млн рублей",
+    "sam":0,"_sam":"SAM достижимый рынок в млн рублей",
+    "som":0,"_som":"SOM реальный захват за 3 года в млн рублей",
+    "tav":0,"_tav":"TAV порог автономии в млн рублей"
+  };
+  const blob=new Blob([JSON.stringify(tpl,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ssi_anketa_shablon.json';a.click();
+}
+buildGrid();
+document.querySelectorAll('input[type=number]').forEach(i=>i.addEventListener('input',calc));
+</script>
+</body>
+</html>
