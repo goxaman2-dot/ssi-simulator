@@ -39,6 +39,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mf label{display:block;font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
 .mf input{width:100%;border:none;outline:none;font-size:12px;color:#1a1a1a;background:transparent;font-family:inherit}
 .mf input::placeholder{color:#ccc;font-size:11px}
+/* AI UPLOAD */
+.ai-upload{background:#fff;border:1.5px dashed #ccc;border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem;position:relative;transition:border-color .2s;cursor:pointer}
+.ai-upload:hover{border-color:#7F77DD}
+.ai-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.ai-upload-inner{display:flex;align-items:center;gap:12px}
+.ai-upload-icon{width:40px;height:40px;border-radius:10px;background:#EDE9FC;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ai-upload-text h3{font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:2px}
+.ai-upload-text p{font-size:11px;color:#888;line-height:1.4}
+.ai-status{display:none;margin-top:.65rem;padding:.5rem .75rem;border-radius:8px;font-size:12px;align-items:center;gap:8px}
+.ai-status.thinking{background:#EDE9FC;color:#3C3489;display:flex}
+.ai-status.done{background:#E1F5EE;color:#0F6E56;display:flex}
+.ai-status.error{background:#FCEBEB;color:#501313;display:flex}
+.ai-spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:#7F77DD;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-filled{background:#E1F5EE;border:1.5px solid #1D9E75}
+.ai-filled .ai-upload-icon{background:#1D9E75}
 /* РЫНОК */
 .mkt-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem}
 .mkt-item{background:#f8f8f5;border-radius:8px;padding:.6rem .75rem;border:0.5px solid #eee}
@@ -113,6 +129,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="pane active" id="pane-startup">
 
 <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+<div class="ai-upload" id="ai-upload-zone">
+  <input type="file" id="ai-file-inp" accept=".pdf,.docx,.doc,.pptx,.txt" onchange="aiReadFile(this)">
+  <div class="ai-upload-inner">
+    <div class="ai-upload-icon" id="ai-icon">🤖</div>
+    <div class="ai-upload-text">
+      <h3>Загрузите презентацию или описание стартапа — AI заполнит анкету сам</h3>
+      <p>Поддерживаются: PDF, DOCX, PPTX, TXT · Claude прочитает файл и подставит все значения автоматически · вы сможете исправить любое поле</p>
+    </div>
+  </div>
+  <div class="ai-status" id="ai-status">
+    <div class="ai-spinner" id="ai-spinner"></div>
+    <span id="ai-status-text">Читаю документ...</span>
+  </div>
+</div>
 
 <div class="meta-grid">
   <div class="mf"><label>Название вашего стартапа</label><input id="s-name" placeholder="Например: Козий Бульдог" oninput="syncMeta()"></div>
@@ -455,6 +486,114 @@ function updateProgress(){
   const filled=ids.filter(id=>document.getElementById(id).value!=='').length;
   document.getElementById('progress').style.width=(filled/ids.length*100)+'%';
 }
+async function aiReadFile(inp){
+  const file=inp.files[0];if(!file)return;
+  const zone=document.getElementById('ai-upload-zone');
+  const status=document.getElementById('ai-status');
+  const statusText=document.getElementById('ai-status-text');
+  const icon=document.getElementById('ai-icon');
+  const spinner=document.getElementById('ai-spinner');
+
+  const setStatus=(cls,txt,spin=false)=>{
+    status.className='ai-status '+cls;
+    statusText.textContent=txt;
+    spinner.style.display=spin?'block':'none';
+  };
+
+  setStatus('thinking','Читаю '+file.name+' ...',true);
+
+  const PROMPT=`Ты — эксперт по оценке стартапов по методике SSI (Self-Sufficiency Index). Прочитай этот документ о стартапе и извлеки данные для заполнения анкеты SSI.
+
+Верни ТОЛЬКО валидный JSON без markdown, без пояснений, строго в таком формате:
+{
+  "name": "название стартапа",
+  "author": "ФИО автора если есть",
+  "u1": число (стоимость альтернативы для клиента в рублях — сколько стоит конкурент или сколько теряет клиент без продукта),
+  "u2": число (сколько раз в год клиент сталкивается с этой потребностью),
+  "e1": число (минут клиент проводит с продуктом за одну сессию),
+  "e2": число (цена продукта делённая на цену конкурента, коэффициент — если дешевле то меньше 1),
+  "r1": число (повторных покупок одного клиента в год),
+  "r2": число (LTV делённый на CAC, коэффициент),
+  "k1": число (стартовые вложения CAPEX в тысячах рублей),
+  "k2": число (маржинальность продукта в процентах),
+  "t1": число (месяцев до EBITDA плюс),
+  "t2": число (месяцев до окупаемости вложений),
+  "s1": число (процент клиентов пришедших по рекомендации),
+  "s2": число (NPS от минус 100 до плюс 100),
+  "tam": число (TAM весь рынок в миллионах рублей),
+  "sam": число (SAM достижимый рынок в миллионах рублей),
+  "som": число (SOM реальный захват за 3 года в миллионах рублей),
+  "tav": число (TAV минимальная выручка для самоокупаемости в миллионах рублей),
+  "reasoning": "краткое обоснование ключевых значений на русском языке — 2-3 предложения"
+}
+
+Если данных для точного расчёта нет — используй обоснованные оценки на основе отрасли и описания. Для числовых полей всегда ставь конкретное число, не null и не 0 если можно оценить.`;
+
+  try{
+    let content;
+    const ext=file.name.split('.').pop().toLowerCase();
+
+    if(ext==='txt'){
+      const text=await file.text();
+      content=[{type:'text',text:PROMPT+'\n\nДОКУМЕНТ:\n'+text.slice(0,15000)}];
+    } else {
+      setStatus('thinking','Конвертирую '+file.name+' для AI...',true);
+      const ab=await file.arrayBuffer();
+      const arr=new Uint8Array(ab);
+      let raw='';const chunk=8192;
+      for(let i=0;i<arr.length;i+=chunk){raw+=String.fromCharCode(...arr.subarray(i,i+chunk));}
+      const b64=btoa(raw);
+      const mt=ext==='pdf'?'application/pdf':
+                ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                ext==='pptx'?'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                'application/octet-stream';
+      content=[
+        {type:'document',source:{type:'base64',media_type:mt,data:b64}},
+        {type:'text',text:PROMPT}
+      ];
+    }
+
+    setStatus('thinking','AI анализирует данные стартапа...',true);
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content}]
+      })
+    });
+
+    if(!resp.ok)throw new Error('API error '+resp.status);
+    const data=await resp.json();
+    const raw=data.content?.find(c=>c.type==='text')?.text||'{}';
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+
+    const set=(id,v)=>{if(v!==undefined&&v!==null&&v!==''){
+      const el=document.getElementById(id);if(el)el.value=v;
+    }};
+
+    set('s-name',parsed.name);set('s-author',parsed.author);
+    set('e-name',parsed.name);set('e-author',parsed.author);
+    ['u1','u2','e1','e2','r1','r2','k1','k2','t1','t2','s1','s2','tam','sam','som','tav'].forEach(k=>{
+      set('s-'+k,parsed[k]);set('e-'+k,parsed[k]);
+    });
+
+    zone.classList.add('ai-filled');
+    icon.textContent='✅';
+    setStatus('done','Анкета заполнена из «'+file.name+'»'+(parsed.reasoning?' · '+parsed.reasoning:''),false);
+
+    calcMkt();calc();
+
+  } catch(err){
+    console.error(err);
+    icon.textContent='⚠️';
+    setStatus('error','Не удалось прочитать файл автоматически — заполните поля вручную',false);
+  }
+}
+
 function buildGrid(){
   const g=document.getElementById('lgrid');g.innerHTML='';
   [2,4,6,8,10].forEach(v=>{
